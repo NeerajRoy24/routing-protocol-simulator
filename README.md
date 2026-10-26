@@ -16,7 +16,7 @@ Traditional routing simulators compare basic Distance Vector (RIP) and Link-Stat
 
 ```bash
 # 1. Clone the repository
-git clone [https://github.com/](https://github.com/)<NeerajRoy24>/routing-protocol-simulator.git
+git clone https://github.com/NeerajRoy24/routing-protocol-simulator.git
 cd routing-protocol-simulator
 
 # 2. Install dependencies
@@ -24,3 +24,7 @@ pip install -r requirements.txt
 
 # 3. Run the simulator and generate benchmark plots
 python simulator.py
+```
+
+## Performance Benchmark Results
+![Routing Protocol Performance Analysis](performance_analysis.png)

@@ -24,7 +24,15 @@ pip install -r requirements.txt
 
 # 3. Run the simulator and generate benchmark plots
 python simulator.py
+
+# 4. (Optional) Rebuild the comprehensive Methodology PDF
+python generate_methodology_pdf.py
 ```
 
+## Methodology & Architectural Report
+For a complete theoretical analysis, metric derivation, and mathematical feasibility models, refer to the included publication-grade document:
+📄 **[Routing_Protocol_Simulator_Methodology.pdf](Routing_Protocol_Simulator_Methodology.pdf)**
+
 ## Performance Benchmark Results
-![Routing Protocol Performance Analysis](performance_analysis.png)
+![Routing Protocol Performance Analysis](performance_analysis.png)
+

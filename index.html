@@ -4,14 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Routing Protocol Simulator | DUAL (EIGRP) vs. Path Vector (BGP)</title>
+  
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- KaTeX for publication-grade mathematical typography -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -28,6 +37,7 @@
               800: '#131b2e',
               750: '#18223a',
               700: '#1e2942',
+              650: '#263454',
               600: '#2b3959',
             },
             dual: {
@@ -49,7 +59,6 @@
     }
   </script>
   <style>
-    /* Custom scrollbars and glowing pulse animations */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: #0d1322; }
     ::-webkit-scrollbar-thumb { background: #1e2942; border-radius: 4px; }
@@ -71,6 +80,10 @@
       background-image: 
         linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
+    .modal-backdrop {
+      background-color: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(8px);
     }
   </style>
 </head>
@@ -100,20 +113,29 @@
         <a href="#topology" class="hover:text-emerald-400 transition">Interactive Topology</a>
         <a href="#comparison" class="hover:text-emerald-400 transition">Decision Engine</a>
         <a href="#benchmarks" class="hover:text-emerald-400 transition">Performance Analytics</a>
-        <a href="#theory" class="hover:text-emerald-400 transition">Theory & Formulas</a>
+        <a href="#theory" class="hover:text-emerald-400 transition">Theory &amp; Formulas</a>
         <a href="#terminal" class="hover:text-emerald-400 transition">CLI Terminal</a>
       </nav>
 
-      <div class="flex items-center space-x-3">
-        <a href="https://github.com/NeerajRoy24/routing-protocol-simulator" target="_blank" class="flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-lg border border-dark-600 bg-dark-800 hover:bg-dark-750 text-slate-300 transition">
+      <div class="flex items-center space-x-2.5">
+        <!-- Audio Synth Toggle -->
+        <button onclick="toggleAudio()" id="btn-audio-toggle" title="Toggle Sound Effects" class="text-xs px-2.5 py-1.5 rounded-lg border border-dark-600 bg-dark-800 hover:bg-dark-750 text-slate-300 transition flex items-center space-x-1">
+          <span id="audio-icon">🔊</span>
+          <span class="hidden lg:inline text-[11px] font-mono">Sound</span>
+        </button>
+
+        <!-- Guided Tour Trigger -->
+        <button onclick="startGuidedTour()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center space-x-1.5 shadow-md shadow-indigo-600/20">
+          <span>🎓</span>
+          <span class="hidden sm:inline">Guided Review</span>
+        </button>
+
+        <a href="https://github.com/NeerajRoy24/routing-protocol-simulator" target="_blank" class="flex items-center space-x-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-dark-600 bg-dark-800 hover:bg-dark-750 text-slate-300 transition">
           <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
             <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
           </svg>
-          <span>GitHub</span>
+          <span class="hidden sm:inline">Repo</span>
         </a>
-        <button onclick="scrollToTopology()" class="text-xs font-semibold px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition shadow-lg shadow-emerald-500/20">
-          Live Demo
-        </button>
       </div>
     </div>
   </header>
@@ -126,9 +148,9 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
       <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-dark-800/80 border border-dark-600 text-xs font-medium text-slate-300 mb-6">
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span>Advanced Production Routing Paradigms</span>
+        <span>Interactive Network Routing Simulator</span>
         <span class="text-dark-600">|</span>
-        <span class="text-emerald-400 font-mono">Autonomous Systems & DUAL FSM</span>
+        <span class="text-emerald-400 font-mono">Autonomous Systems &amp; DUAL FSM</span>
       </div>
 
       <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight max-w-4xl mx-auto leading-tight">
@@ -139,19 +161,19 @@
       </h1>
 
       <p class="mt-5 text-base sm:text-lg text-slate-400 max-w-3xl mx-auto leading-relaxed">
-        An interactive virtual multi-router simulation pitting 
-        <strong class="text-emerald-300">DUAL (Diffusing Update Algorithm / EIGRP)</strong> against 
-        <strong class="text-orange-400">Path Vector (BGP)</strong>. Experience real-time link cut failures, feasible successor switchovers, AS-Path loop prevention, and sub-second convergence analytics.
+        A comparative laboratory benchmarking 
+        <strong class="text-emerald-300">DUAL (Diffusing Update Algorithm — EIGRP)</strong> against 
+        <strong class="text-orange-400">Path Vector (BGP)</strong>. Experience real-time physical link cut failures, feasible successor switchovers, AS-Path loop prevention, and sub-second convergence analytics.
       </p>
 
       <!-- Key Stat Badges -->
       <div class="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto">
         <div class="bg-dark-850/70 border border-dark-750 rounded-xl p-3.5 backdrop-blur">
-          <div class="text-2xl font-bold font-mono text-emerald-400" id="stat-routers">6 Nodes</div>
+          <div class="text-2xl font-bold font-mono text-emerald-400">6 Routers</div>
           <div class="text-xs text-slate-400 mt-1">Multi-AS Mesh Topology</div>
         </div>
         <div class="bg-dark-850/70 border border-dark-750 rounded-xl p-3.5 backdrop-blur">
-          <div class="text-2xl font-bold font-mono text-cyan-400" id="stat-links">9 Links</div>
+          <div class="text-2xl font-bold font-mono text-cyan-400">9 Links</div>
           <div class="text-xs text-slate-400 mt-1">Fiber, Backup &amp; Legacy</div>
         </div>
         <div class="bg-dark-850/70 border border-dark-750 rounded-xl p-3.5 backdrop-blur">
@@ -226,11 +248,15 @@
           <button onclick="resetTopology()" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-dark-650 bg-dark-800 hover:bg-dark-750 text-slate-300 transition">
             Reset Links
           </button>
-          <button onclick="triggerPacketPing()" class="text-xs font-bold px-4 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-dark-900 transition flex items-center space-x-1 shadow-md shadow-emerald-500/20">
+          <button onclick="triggerPacketPing()" class="text-xs font-bold px-4 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-dark-900 transition flex items-center space-x-1.5 shadow-md shadow-emerald-500/20">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
             </svg>
             <span>Ping Route</span>
+          </button>
+          <button onclick="copySimulationReport()" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-dark-600 bg-dark-800 hover:bg-dark-750 text-slate-300 transition flex items-center space-x-1" title="Copy results as Markdown">
+            <span>📋</span>
+            <span>Copy Report</span>
           </button>
         </div>
 
@@ -461,7 +487,7 @@
         <div>
           <h2 class="text-xl font-bold text-white flex items-center space-x-2">
             <span>Benchmark Analytics &amp; Convergence Scalability</span>
-            <span class="text-xs font-mono font-normal bg-dark-750 text-slate-300 px-2.5 py-0.5 rounded-full">Chart.js Live Engine</span>
+            <span class="text-xs font-mono font-normal bg-dark-750 text-slate-300 px-2.5 py-0.5 rounded-full">Chart.js Engine</span>
           </h2>
           <p class="text-sm text-slate-400 mt-1">
             Empirical scaling comparison evaluating convergence latency vs network size ($N = 6 \dots 100$) and link failure packet delay.
@@ -528,7 +554,7 @@
             </div>
 
             <div class="bg-dark-850 p-3.5 rounded-lg border border-dark-700 font-mono text-xs text-slate-300 mb-4">
-              $$\text{Composite Metric} = 256 \times \left(\frac{10^4}{\text{BW}_{\text{Mbps}}} + \frac{\text{Delay}_{\text{ms}}}{10}\right)$$
+              $$\text{Metric} = 256 \times \left(\frac{10^4}{\text{BW}_{\text{Mbps}}} + \frac{\text{Delay}_{\text{ms}}}{10}\right)$$
             </div>
           </div>
 
@@ -683,6 +709,37 @@
 
   </main>
 
+  <!-- GUIDED TOUR MODAL OVERLAY -->
+  <div id="tour-modal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden">
+    <div class="bg-dark-850 border border-dark-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-dark-750">
+        <div class="flex items-center space-x-2">
+          <span class="text-lg">🎓</span>
+          <h3 class="text-base font-bold text-white" id="tour-title">Guided Review: Step 1</h3>
+        </div>
+        <span class="text-xs font-mono px-2 py-0.5 rounded bg-dark-750 text-emerald-400" id="tour-step-counter">1 / 5</span>
+      </div>
+
+      <div class="my-5 text-sm text-slate-300 leading-relaxed" id="tour-body">
+        <!-- Injected by JS -->
+      </div>
+
+      <div class="flex items-center justify-between pt-4 border-t border-dark-750">
+        <button onclick="closeTour()" class="text-xs text-slate-400 hover:text-white transition">Exit Tour</button>
+        <div class="flex items-center space-x-2">
+          <button onclick="prevTourStep()" id="tour-btn-prev" class="text-xs px-3 py-1.5 rounded bg-dark-750 hover:bg-dark-700 text-slate-300 font-semibold transition">Back</button>
+          <button onclick="nextTourStep()" id="tour-btn-next" class="text-xs px-4 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-dark-900 font-bold transition">Next Step ➔</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 bg-emerald-950 border border-emerald-700 text-emerald-300 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-mono transition-opacity duration-300 opacity-0 pointer-events-none flex items-center space-x-2">
+    <span>✓</span>
+    <span id="toast-msg">Copied report to clipboard!</span>
+  </div>
+
   <!-- FOOTER -->
   <footer class="border-t border-dark-750 bg-dark-900/90 py-8 text-center text-xs text-slate-500">
     <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -730,6 +787,63 @@
     let currentBgpResult = null;
     let convergenceChart = null;
     let latencyChart = null;
+    let soundEnabled = true;
+
+    // Web Audio Synthesizer for high-tech feedback
+    let audioCtx = null;
+    function getAudioCtx() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioCtx();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'cut') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.exponentialRampToValueAtTime(50, now + 0.28);
+          gain.gain.setValueAtTime(0.22, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+          osc.start(now);
+          osc.stop(now + 0.28);
+        } else if (type === 'restore') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+          osc.start(now);
+          osc.stop(now + 0.18);
+        } else if (type === 'hop') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(659.25, now); // E5
+          osc.frequency.exponentialRampToValueAtTime(1318.5, now + 0.09); // E6
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+          osc.start(now);
+          osc.stop(now + 0.09);
+        }
+      } catch(e) {}
+    }
+
+    function toggleAudio() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('audio-icon').innerText = soundEnabled ? '🔊' : '🔇';
+      showToast(soundEnabled ? 'Sound effects enabled' : 'Sound effects muted');
+    }
 
     // -------------------------------------------------------------
     // 2. DUAL METRIC FORMULA
@@ -988,7 +1102,7 @@
         const isDual = isLinkInPath(link, dualPath) && (viewFilter === "both" || viewFilter === "dual");
         const isBgp = isLinkInPath(link, bgpPath) && (viewFilter === "both" || viewFilter === "bgp");
 
-        let strokeColor = "#334155"; // default slate
+        let strokeColor = "#334155";
         let strokeWidth = 3;
         let strokeDash = "none";
         let filterAttr = "";
@@ -1009,7 +1123,7 @@
           strokeDash = "6 6";
           strokeWidth = 3;
         } else if (isDual && isBgp) {
-          strokeColor = "#10b981"; // Dual green with dual tone
+          strokeColor = "#10b981";
           strokeWidth = 6;
           filterAttr = 'filter="url(#glow-green)"';
         } else if (isDual) {
@@ -1242,6 +1356,8 @@
       if (!link) return;
       link.status = (link.status === "UP") ? "DOWN" : "UP";
       
+      playSound(link.status === "DOWN" ? "cut" : "restore");
+
       const ticker = document.getElementById("ticker-text");
       ticker.innerText = `Link ${link.u} <-> ${link.v} set to ${link.status}. Recomputing routes...`;
       
@@ -1265,14 +1381,19 @@
         document.getElementById("src-router").value = "R1";
         document.getElementById("dst-router").value = "R6";
         document.getElementById("ticker-text").innerText = "Steady-state scenario restored. All 9 links operational.";
+        playSound('restore');
       } else if (name === "cut-core") {
         LINKS.forEach(l => l.status = "UP");
         const core = LINKS.find(l => l.id === "R2-R3");
         if (core) core.status = "DOWN";
         document.getElementById("ticker-text").innerText = "Core Fiber Cut simulated on R2 <-> R3. DUAL and BGP reconverged!";
+        playSound('cut');
       } else if (name === "cut-backup") {
         const link = LINKS.find(l => l.id === "R4-R5");
-        if (link) link.status = link.status === "UP" ? "DOWN" : "UP";
+        if (link) {
+          link.status = link.status === "UP" ? "DOWN" : "UP";
+          playSound(link.status === "DOWN" ? "cut" : "restore");
+        }
         document.getElementById("ticker-text").innerText = "Backup link R4 <-> R5 toggled.";
       }
       updateSimulation();
@@ -1281,6 +1402,7 @@
     function resetTopology() {
       LINKS.forEach(l => l.status = "UP");
       document.getElementById("ticker-text").innerText = "Topology reset. All links UP.";
+      playSound('restore');
       updateSimulation();
     }
 
@@ -1309,6 +1431,7 @@
       let hopIndex = 0;
       function animateHop() {
         if (hopIndex >= activePath.length - 1) {
+          playSound('restore');
           setTimeout(() => {
             packetLayer.innerHTML = "";
             document.getElementById("ticker-text").innerText = `Ping reached ${activePath[activePath.length - 1]} successfully!`;
@@ -1316,10 +1439,11 @@
           return;
         }
 
+        playSound('hop');
         const startNode = ROUTERS[activePath[hopIndex]];
         const endNode = ROUTERS[activePath[hopIndex + 1]];
         const startTime = performance.now();
-        const duration = 400; // ms per hop
+        const duration = 380; // ms per hop
 
         function step(now) {
           const progress = Math.min((now - startTime) / duration, 1);
@@ -1379,7 +1503,121 @@
     }
 
     // -------------------------------------------------------------
-    // 10. CHART.JS PERFORMANCE BENCHMARKING
+    // 10. COPY REPORT & TOAST
+    // -------------------------------------------------------------
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 2500);
+    }
+
+    function copySimulationReport() {
+      const report = `### Routing Simulation Benchmark Report
+- **Source**: ${document.getElementById("src-router").value}
+- **Destination**: ${document.getElementById("dst-router").value}
+
+#### DUAL (EIGRP)
+- **Path**: ${currentDualResult.path.join(' -> ')}
+- **Metric (FD)**: ${currentDualResult.metric}
+- **Delay**: ${currentDualResult.delay} ms
+- **Bottleneck BW**: ${currentDualResult.bottleneck} Mbps
+- **Feasible Successor Active**: ${currentDualResult.feasibleSuccessors.length > 0 ? 'Yes' : 'No'}
+
+#### Path Vector (BGP)
+- **Path**: ${currentBgpResult.path.join(' -> ')}
+- **AS_PATH**: [${currentBgpResult.asPath.join(', ')}]
+- **AS Hops**: ${currentBgpResult.asHops}
+- **Delay**: ${currentBgpResult.delay} ms
+- **Bottleneck BW**: ${currentBgpResult.bottleneck} Mbps
+`;
+      navigator.clipboard.writeText(report).then(() => {
+        showToast("Copied Markdown report to clipboard!");
+      }).catch(() => {
+        showToast("Error copying to clipboard");
+      });
+    }
+
+    // -------------------------------------------------------------
+    // 11. 5-STEP GUIDED TOUR REVIEW MODE
+    // -------------------------------------------------------------
+    const TOUR_STEPS = [
+      {
+        title: "Topology & Autonomous Systems",
+        body: "The virtual network models <strong>6 Routers</strong> (R1 to R6) across 6 separate <strong>Autonomous Systems</strong> (AS 65001 to AS 65006). Notice the 3 link tiers: <strong>1000 Mbps Fiber Backbone</strong> (Cyan/Green), <strong>100 Mbps Backup Mesh</strong> (Indigo), and <strong>10 Mbps Legacy Links</strong> (Gray).",
+        action: () => triggerScenario('steady')
+      },
+      {
+        title: "Steady-State: DUAL vs BGP Paths",
+        body: "Observe the steady-state choices from R1 to R6:<br><br>• <strong>DUAL (EIGRP)</strong> chooses the 4-hop fiber route <code>R1 ➔ R2 ➔ R3 ➔ R5 ➔ R6</code> (16 ms delay, 1000M bandwidth) because its composite metric prioritizes speed.<br>• <strong>BGP</strong> chooses the 3-hop route <code>R1 ➔ R2 ➔ R3 ➔ R6</code> (33 ms delay, 100M bandwidth) because it has fewer AS hops (3 vs 4).",
+        action: () => triggerScenario('steady')
+      },
+      {
+        title: "Physical Failure: Fiber Cut",
+        body: "Now watch what happens when the core fiber link <code>R2 &lt;-&gt; R3</code> is severed. Notice the dashed red alert line on the topology canvas.",
+        action: () => triggerScenario('cut-core')
+      },
+      {
+        title: "Sub-Second Reconvergence",
+        body: "Both protocols automatically reconverge:<br><br>• <strong>DUAL</strong> switches immediately to its loop-free backup <code>R1 ➔ R2 ➔ R4 ➔ R5 ➔ R6</code> (35 ms delay, 100M bottleneck) satisfying the Feasibility Condition (RD &lt; FD).<br>• <strong>BGP</strong> falls back to <code>R1 ➔ R2 ➔ R4 ➔ R6</code>, which relies on the 10 Mbps legacy link (64 ms delay).",
+        action: () => triggerScenario('cut-core')
+      },
+      {
+        title: "Performance Takeaways & Viva Summary",
+        body: "<strong>Key Takeaway:</strong> Interior protocols (DUAL) optimize for physical throughput and sub-second failover, while Exterior protocols (BGP) prioritize policy rules and AS-Path loop avoidance over pure wire speed. Explore the live scalability charts below!",
+        action: () => refreshCharts()
+      }
+    ];
+
+    let currentTourStep = 0;
+
+    function startGuidedTour() {
+      currentTourStep = 0;
+      updateTourUI();
+      document.getElementById('tour-modal').classList.remove('hidden');
+    }
+
+    function closeTour() {
+      document.getElementById('tour-modal').classList.add('hidden');
+    }
+
+    function updateTourUI() {
+      const step = TOUR_STEPS[currentTourStep];
+      document.getElementById('tour-title').innerText = `Step ${currentTourStep + 1}: ${step.title}`;
+      document.getElementById('tour-step-counter').innerText = `${currentTourStep + 1} / ${TOUR_STEPS.length}`;
+      document.getElementById('tour-body').innerHTML = step.body;
+      document.getElementById('tour-btn-prev').disabled = (currentTourStep === 0);
+      document.getElementById('tour-btn-prev').className = currentTourStep === 0 
+        ? "text-xs px-3 py-1.5 rounded bg-dark-750 text-slate-600 cursor-not-allowed" 
+        : "text-xs px-3 py-1.5 rounded bg-dark-750 hover:bg-dark-700 text-slate-300 font-semibold transition";
+
+      document.getElementById('tour-btn-next').innerText = (currentTourStep === TOUR_STEPS.length - 1) ? "Finish Review" : "Next Step ➔";
+      if (step.action) step.action();
+    }
+
+    function nextTourStep() {
+      if (currentTourStep < TOUR_STEPS.length - 1) {
+        currentTourStep++;
+        updateTourUI();
+      } else {
+        closeTour();
+        showToast("Review guide complete! Explore charts & formulas below.");
+      }
+    }
+
+    function prevTourStep() {
+      if (currentTourStep > 0) {
+        currentTourStep--;
+        updateTourUI();
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 12. CHART.JS PERFORMANCE BENCHMARKING
     // -------------------------------------------------------------
     function initCharts() {
       // 1. Convergence Scalability Chart (Logarithmic)
@@ -1494,7 +1732,6 @@
 
     function updateCharts() {
       if (!latencyChart) return;
-      // Update dynamic live bar based on current state
       const currentDualDelay = currentDualResult && currentDualResult.reachable ? currentDualResult.delay : 0;
       const currentBgpDelay = currentBgpResult && currentBgpResult.reachable ? currentBgpResult.delay : 0;
 
@@ -1515,12 +1752,22 @@
     }
 
     // -------------------------------------------------------------
-    // 11. INITIALIZATION ON DOM READY
+    // 13. INITIALIZATION ON DOM READY
     // -------------------------------------------------------------
     window.addEventListener("DOMContentLoaded", () => {
       initCharts();
       updateSimulation();
       calcCompositeMetric();
+
+      // Render math equations if KaTeX auto-render loaded
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false}
+          ]
+        });
+      }
     });
   </script>
 </body>

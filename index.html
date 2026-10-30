@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Routing Protocol Simulator | DUAL (EIGRP) vs. Path Vector (BGP)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"Fira Code"', 'monospace'],
+          },
+          colors: {
+            dark: {
+              900: '#090d16',
+              850: '#0d1322',
+              800: '#131b2e',
+              750: '#18223a',
+              700: '#1e2942',
+              600: '#2b3959',
+            },
+            dual: {
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              bg: '#064e3b',
+            },
+            bgp: {
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea580c',
+              bg: '#7c2d12',
+            },
+            cyanAccent: '#06b6d4',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbars and glowing pulse animations */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0d1322; }
+    ::-webkit-scrollbar-thumb { background: #1e2942; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2b3959; }
+
+    @keyframes pulseGlow {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.7)); }
+      50% { filter: drop-shadow(0 0 16px rgba(16, 185, 129, 1)); }
+    }
+    @keyframes pulseOrange {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.7)); }
+      50% { filter: drop-shadow(0 0 16px rgba(249, 115, 22, 1)); }
+    }
+    .glow-dual { animation: pulseGlow 2.5s infinite ease-in-out; }
+    .glow-bgp { animation: pulseOrange 2.5s infinite ease-in-out; }
+
+    .grid-bg {
+      background-size: 32px 32px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
+  </style>
+</head>
+<body class="bg-dark-900 text-slate-100 font-sans min-h-screen selection:bg-emerald-500/30 selection:text-emerald-200">
+
+  <!-- TOP NAV -->
+  <header class="border-b border-dark-700/60 bg-dark-850/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 via-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div>
+          <span class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            RouteSim<span class="text-emerald-400">.io</span>
+          </span>
+          <span class="hidden sm:inline-block ml-2 text-xs font-mono uppercase tracking-wider text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded-full">
+            DUAL vs BGP
+          </span>
+        </div>
+      </div>
+
+      <!-- Quick Nav Links -->
+      <nav class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-400">
+        <a href="#topology" class="hover:text-emerald-400 transition">Interactive Topology</a>
+        <a href="#comparison" class="hover:text-emerald-400 transition">Decision Engine</a>
+        <a href="#benchmarks" class="hover:text-emerald-400 transition">Performance Analytics</a>
+        <a href="#theory" class="hover:text-emerald-400 transition">Theory & Formulas</a>
+        <a href="#terminal" class="hover:text-emerald-400 transition">CLI Terminal</a>
+      </nav>
+
+      <div class="flex items-center space-x-3">
+        <a href="https://github.com/NeerajRoy24/routing-protocol-simulator" target="_blank" class="flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-lg border border-dark-600 bg-dark-800 hover:bg-dark-750 text-slate-300 transition">
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          <span>GitHub</span>
+        </a>
+        <button onclick="scrollToTopology()" class="text-xs font-semibold px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition shadow-lg shadow-emerald-500/20">
+          Live Demo
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="relative overflow-hidden pt-12 pb-16 border-b border-dark-750">
+    <div class="absolute inset-0 grid-bg opacity-40"></div>
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-tr from-emerald-500/10 via-cyan-500/10 to-transparent blur-3xl pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-dark-800/80 border border-dark-600 text-xs font-medium text-slate-300 mb-6">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>Advanced Production Routing Paradigms</span>
+        <span class="text-dark-600">|</span>
+        <span class="text-emerald-400 font-mono">Autonomous Systems & DUAL FSM</span>
+      </div>
+
+      <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight max-w-4xl mx-auto leading-tight">
+        Routing Protocol Simulator &amp;
+        <span class="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
+          Performance Benchmarking
+        </span>
+      </h1>
+
+      <p class="mt-5 text-base sm:text-lg text-slate-400 max-w-3xl mx-auto leading-relaxed">
+        An interactive virtual multi-router simulation pitting 
+        <strong class="text-emerald-300">DUAL (Diffusing Update Algorithm / EIGRP)</strong> against 
+        <strong class="text-orange-400">Path Vector (BGP)</strong>. Experience real-time link cut failures, feasible successor switchovers, AS-Path loop prevention, and sub-second convergence analytics.
+      </p>
+
+      <!-- Key Stat Badges -->
+      <div class="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto">
+        <div class="bg-dark-850/70 border border-dark-750 rounded-xl p-3.5 backdrop-blur">
+          <div class="text-2xl font-bold font-mono text-emerald-400" id="stat-routers">6 Nodes</div>
+          <div class="text-xs text-slate-400 mt-1">Multi-AS Mesh Topology</div>
+        </div>
+        <div class="bg-dark-850/70 border border-dark-750 rounded-xl p-3.5 backdrop-blur">
+          <div class="text-2xl font-bold font-mono text-cyan-400" id="stat-links">9 Links</div>
+          <div class="text-xs text-slate-400 mt-1">Fiber, Backup &amp; Legacy</div>
+        </div>
+        <div class="bg-dark-850/70 border border-dark-750 rounded-xl p-3.5 backdrop-blur">
+          <div class="text-2xl font-bold font-mono text-orange-400">&lt; 5 ms</div>
+          <div class="text-xs text-slate-400 mt-1">DUAL Feasible Successor</div>
+        </div>
+        <div class="bg-dark-850/70 border border-dark-750 rounded-xl p-3.5 backdrop-blur">
+          <div class="text-2xl font-bold font-mono text-purple-400">100% Loop-Free</div>
+          <div class="text-xs text-slate-400 mt-1">AS_PATH &amp; RD &lt; FD</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN INTERACTIVE WORKSPACE -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12" id="topology">
+
+    <!-- SIMULATION CONTROL BAR -->
+    <div class="bg-dark-850 border border-dark-750 rounded-2xl p-5 shadow-xl">
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        
+        <!-- Source & Target Selector -->
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Source:</span>
+            <select id="src-router" onchange="updateSimulation()" class="bg-dark-800 border border-dark-650 text-emerald-400 text-sm rounded-lg px-3 py-1.5 font-mono focus:ring-1 focus:ring-emerald-400 outline-none">
+              <option value="R1" selected>R1 (AS 65001)</option>
+              <option value="R2">R2 (AS 65002)</option>
+              <option value="R3">R3 (AS 65003)</option>
+              <option value="R4">R4 (AS 65004)</option>
+              <option value="R5">R5 (AS 65005)</option>
+              <option value="R6">R6 (AS 65006)</option>
+            </select>
+          </div>
+
+          <div class="text-slate-500 font-mono">➔</div>
+
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Target:</span>
+            <select id="dst-router" onchange="updateSimulation()" class="bg-dark-800 border border-dark-650 text-cyan-400 text-sm rounded-lg px-3 py-1.5 font-mono focus:ring-1 focus:ring-cyan-400 outline-none">
+              <option value="R1">R1 (AS 65001)</option>
+              <option value="R2">R2 (AS 65002)</option>
+              <option value="R3">R3 (AS 65003)</option>
+              <option value="R4">R4 (AS 65004)</option>
+              <option value="R5">R5 (AS 65005)</option>
+              <option value="R6" selected>R6 (AS 65006)</option>
+            </select>
+          </div>
+
+          <!-- View Mode Filter -->
+          <div class="h-6 w-px bg-dark-700 hidden sm:block"></div>
+          <div class="inline-flex rounded-lg bg-dark-800 p-1 border border-dark-700 text-xs font-medium">
+            <button onclick="setViewFilter('both')" id="btn-view-both" class="px-3 py-1 rounded-md bg-dark-700 text-white font-semibold transition">Both Paths</button>
+            <button onclick="setViewFilter('dual')" id="btn-view-dual" class="px-3 py-1 rounded-md text-slate-400 hover:text-emerald-400 transition">DUAL Only</button>
+            <button onclick="setViewFilter('bgp')" id="btn-view-bgp" class="px-3 py-1 rounded-md text-slate-400 hover:text-orange-400 transition">BGP Only</button>
+          </div>
+        </div>
+
+        <!-- Presets & Ping Action -->
+        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+          <button onclick="triggerScenario('steady')" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-dark-650 bg-dark-800 hover:bg-dark-750 text-slate-300 transition flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Steady State</span>
+          </button>
+          <button onclick="triggerScenario('cut-core')" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-red-900/60 bg-red-950/40 hover:bg-red-900/50 text-red-300 transition flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+            <span>Cut Fiber (R2-R3)</span>
+          </button>
+          <button onclick="triggerScenario('cut-backup')" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-amber-900/60 bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 transition">
+            <span>Cut R4-R5</span>
+          </button>
+          <button onclick="resetTopology()" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-dark-650 bg-dark-800 hover:bg-dark-750 text-slate-300 transition">
+            Reset Links
+          </button>
+          <button onclick="triggerPacketPing()" class="text-xs font-bold px-4 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-dark-900 transition flex items-center space-x-1 shadow-md shadow-emerald-500/20">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+            </svg>
+            <span>Ping Route</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- INTERACTIVE NETWORK TOPOLOGY CANVAS -->
+    <div class="relative bg-dark-850 border border-dark-750 rounded-2xl overflow-hidden shadow-2xl">
+      <!-- Header bar inside card -->
+      <div class="px-6 py-4 border-b border-dark-750 flex flex-wrap items-center justify-between gap-3 bg-dark-850/90">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center space-x-2">
+            <span>Virtual Network Mesh Topology</span>
+            <span class="text-xs font-normal text-slate-400 font-mono">(Click any link or toggle button to simulate cut)</span>
+          </h2>
+        </div>
+        <!-- Legend -->
+        <div class="flex items-center space-x-4 text-xs font-medium">
+          <div class="flex items-center space-x-1.5">
+            <span class="w-3 h-1 bg-emerald-400 rounded-full"></span>
+            <span class="text-slate-300">1000M Fiber Backbone</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="w-3 h-1 bg-indigo-400 rounded-full"></span>
+            <span class="text-slate-300">100M Backup</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="w-3 h-1 bg-slate-500 rounded-full"></span>
+            <span class="text-slate-400">10M Legacy</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+            <span class="text-red-400">Link Severed</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SVG Map Wrapper -->
+      <div class="relative w-full h-[480px] bg-dark-900 grid-bg overflow-hidden flex items-center justify-center select-none" id="svg-container">
+        <svg id="network-svg" class="w-full h-full" viewBox="0 0 900 480" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <!-- Glowing filters -->
+            <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+            <filter id="glow-orange" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+            <!-- Router gradients -->
+            <radialGradient id="node-grad" cx="40%" cy="40%" r="60%">
+              <stop offset="0%" stop-color="#1e293b" />
+              <stop offset="100%" stop-color="#0f172a" />
+            </radialGradient>
+          </defs>
+
+          <!-- SVG Link Groups -->
+          <g id="svg-links"></g>
+          
+          <!-- Animated Packet Layer -->
+          <g id="svg-packet-layer"></g>
+
+          <!-- SVG Router Nodes -->
+          <g id="svg-nodes"></g>
+        </svg>
+
+        <!-- Floating Live Ticker Badge -->
+        <div id="live-ticker" class="absolute bottom-4 left-4 bg-dark-850/90 border border-dark-700/80 px-3.5 py-2 rounded-xl text-xs font-mono text-slate-300 shadow-xl backdrop-blur flex items-center space-x-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="ticker-text">System Ready. Running steady-state simulation...</span>
+        </div>
+
+        <!-- Quick Link Cut Helper Pill -->
+        <div class="absolute top-4 right-4 bg-dark-850/80 border border-dark-700/80 px-3 py-1.5 rounded-lg text-xs font-mono text-slate-400 shadow-lg backdrop-blur">
+          💡 Click a link line to toggle its cut state
+        </div>
+      </div>
+
+      <!-- Active Links Quick Toggle Grid -->
+      <div class="p-4 bg-dark-800/60 border-t border-dark-750">
+        <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5">
+          Link Status Controller (Toggle Link Failures):
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2" id="links-quick-toggle">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPARISON RESULTS CARDS -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" id="comparison">
+
+      <!-- DUAL (EIGRP) CARD -->
+      <div class="bg-dark-850 border border-dark-750 hover:border-emerald-600/50 rounded-2xl p-6 shadow-xl transition relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="flex items-center justify-between pb-4 border-b border-dark-750">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold font-mono">
+              E
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                <span>DUAL (EIGRP)</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono">IGP</span>
+              </h3>
+              <p class="text-xs text-slate-400">Composite Metric &amp; Feasible Successors</p>
+            </div>
+          </div>
+          <span id="dual-badge-status" class="text-xs font-mono font-semibold px-2.5 py-1 rounded-md bg-emerald-900/60 text-emerald-300 border border-emerald-700/60">
+            Converged
+          </span>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="grid grid-cols-3 gap-3 my-5">
+          <div class="bg-dark-900/80 rounded-xl p-3 border border-dark-750">
+            <div class="text-xs text-slate-400">Feasible Distance</div>
+            <div class="text-lg font-mono font-bold text-emerald-400 mt-1" id="dual-metric">10,648</div>
+            <div class="text-[10px] text-slate-500">Scaled composite</div>
+          </div>
+          <div class="bg-dark-900/80 rounded-xl p-3 border border-dark-750">
+            <div class="text-xs text-slate-400">End-to-End Delay</div>
+            <div class="text-lg font-mono font-bold text-white mt-1" id="dual-delay">16 ms</div>
+            <div class="text-[10px] text-slate-500">Sum of link delays</div>
+          </div>
+          <div class="bg-dark-900/80 rounded-xl p-3 border border-dark-750">
+            <div class="text-xs text-slate-400">Bottleneck BW</div>
+            <div class="text-lg font-mono font-bold text-cyan-400 mt-1" id="dual-bw">1000 Mbps</div>
+            <div class="text-[10px] text-slate-500">Min link bandwidth</div>
+          </div>
+        </div>
+
+        <!-- Selected Path -->
+        <div class="bg-dark-900/70 rounded-xl p-4 border border-dark-750 mb-4">
+          <div class="text-xs text-slate-400 mb-2 font-medium">Selected Primary Path (Successor):</div>
+          <div class="flex items-center space-x-2 font-mono text-sm text-emerald-300 font-semibold flex-wrap gap-y-2" id="dual-path-display">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Feasible Successor / Backup Status -->
+        <div class="bg-dark-900/50 rounded-xl p-4 border border-dark-750 text-xs">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-semibold text-slate-300">Feasible Successor Analysis:</span>
+            <span id="fs-condition-badge" class="font-mono text-[11px] px-2 py-0.5 rounded bg-dark-750 text-slate-300">
+              RD &lt; FD Check
+            </span>
+          </div>
+          <div id="dual-fs-details" class="text-slate-400 space-y-1 font-mono">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- PATH VECTOR (BGP) CARD -->
+      <div class="bg-dark-850 border border-dark-750 hover:border-orange-600/50 rounded-2xl p-6 shadow-xl transition relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="flex items-center justify-between pb-4 border-b border-dark-750">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 font-bold font-mono">
+              B
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                <span>Path Vector (BGP)</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-orange-950 text-orange-400 border border-orange-800 font-mono">EGP</span>
+              </h3>
+              <p class="text-xs text-slate-400">Policy Rules &amp; AS-Path Loop Detection</p>
+            </div>
+          </div>
+          <span id="bgp-badge-status" class="text-xs font-mono font-semibold px-2.5 py-1 rounded-md bg-orange-900/60 text-orange-300 border border-orange-700/60">
+            Converged
+          </span>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="grid grid-cols-3 gap-3 my-5">
+          <div class="bg-dark-900/80 rounded-xl p-3 border border-dark-750">
+            <div class="text-xs text-slate-400">Path Metric</div>
+            <div class="text-lg font-mono font-bold text-orange-400 mt-1" id="bgp-metric">3 AS Hops</div>
+            <div class="text-[10px] text-slate-500">Local_Pref: 150</div>
+          </div>
+          <div class="bg-dark-900/80 rounded-xl p-3 border border-dark-750">
+            <div class="text-xs text-slate-400">End-to-End Delay</div>
+            <div class="text-lg font-mono font-bold text-white mt-1" id="bgp-delay">33 ms</div>
+            <div class="text-[10px] text-slate-500">Sum of link delays</div>
+          </div>
+          <div class="bg-dark-900/80 rounded-xl p-3 border border-dark-750">
+            <div class="text-xs text-slate-400">Bottleneck BW</div>
+            <div class="text-lg font-mono font-bold text-cyan-400 mt-1" id="bgp-bw">100 Mbps</div>
+            <div class="text-[10px] text-slate-500">Min link bandwidth</div>
+          </div>
+        </div>
+
+        <!-- Selected Path -->
+        <div class="bg-dark-900/70 rounded-xl p-4 border border-dark-750 mb-4">
+          <div class="text-xs text-slate-400 mb-2 font-medium">Selected Best Path (Policy + AS_PATH):</div>
+          <div class="flex items-center space-x-2 font-mono text-sm text-orange-300 font-semibold flex-wrap gap-y-2" id="bgp-path-display">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- BGP AS Trace & Candidates -->
+        <div class="bg-dark-900/50 rounded-xl p-4 border border-dark-750 text-xs">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-semibold text-slate-300">AS-Path Vector Trace:</span>
+            <span class="font-mono text-[11px] px-2 py-0.5 rounded bg-dark-750 text-orange-400 font-bold" id="bgp-as-trace">
+              [65001, 65002, 65003, 65006]
+            </span>
+          </div>
+          <div id="bgp-candidates-list" class="text-slate-400 space-y-1 font-mono">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- PERFORMANCE ANALYTICS CHARTS SECTION -->
+    <div class="bg-dark-850 border border-dark-750 rounded-2xl p-6 shadow-2xl" id="benchmarks">
+      <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-dark-750 gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+            <span>Benchmark Analytics &amp; Convergence Scalability</span>
+            <span class="text-xs font-mono font-normal bg-dark-750 text-slate-300 px-2.5 py-0.5 rounded-full">Chart.js Live Engine</span>
+          </h2>
+          <p class="text-sm text-slate-400 mt-1">
+            Empirical scaling comparison evaluating convergence latency vs network size ($N = 6 \dots 100$) and link failure packet delay.
+          </p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="refreshCharts()" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-dark-650 bg-dark-800 hover:bg-dark-750 text-slate-300 transition">
+            Recalculate Series
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
+        <!-- Chart 1: Convergence Scalability (Log Scale) -->
+        <div class="bg-dark-900/90 rounded-xl p-4 border border-dark-750">
+          <h4 class="text-sm font-semibold text-slate-200 mb-1 flex items-center justify-between">
+            <span>Convergence Time vs. Network Scale</span>
+            <span class="text-xs font-mono text-slate-500">Log Scale (ms)</span>
+          </h4>
+          <p class="text-xs text-slate-400 mb-4">DUAL Feasible Successor vs. Active Query vs. BGP MRAI + Path Hunting</p>
+          <div class="h-64">
+            <canvas id="chart-convergence"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Delay & Bandwidth Impact -->
+        <div class="bg-dark-900/90 rounded-xl p-4 border border-dark-750">
+          <h4 class="text-sm font-semibold text-slate-200 mb-1 flex items-center justify-between">
+            <span>Packet Delay Before vs. After Link Cut</span>
+            <span class="text-xs font-mono text-slate-500">Milliseconds (ms)</span>
+          </h4>
+          <p class="text-xs text-slate-400 mb-4">Steady-State (All Links UP) vs Post-Failure (R2-R3 Core Cut)</p>
+          <div class="h-64">
+            <canvas id="chart-latency"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- THEORETICAL DEEP-DIVE & INTERACTIVE FORMULA LAB -->
+    <div class="bg-dark-850 border border-dark-750 rounded-2xl p-6 shadow-xl" id="theory">
+      <h2 class="text-xl font-bold text-white mb-2">Theoretical Foundations &amp; Algorithm Mechanics</h2>
+      <p class="text-sm text-slate-400 mb-6">
+        Understand the mathematical guarantees behind Cisco's DUAL algorithm and IETF's Path Vector BGP standard.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- DUAL Section & Interactive Calculator -->
+        <div class="bg-dark-900/80 rounded-xl p-5 border border-dark-750 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center space-x-2 text-emerald-400 font-bold mb-3">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              <span>1. DUAL (EIGRP) Mathematics</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+              DUAL prevents loops by constructing a Directed Acyclic Graph (DAG) for each destination. A neighbor $k$ qualifies as a 
+              <strong class="text-emerald-300">Feasible Successor (FS)</strong> if its Reported Distance is strictly less than the router's current Feasible Distance:
+            </p>
+
+            <div class="bg-dark-850 p-3.5 rounded-lg border border-emerald-900/40 font-mono text-xs text-emerald-300 mb-4 text-center">
+              $$\text{RD}_k &lt; \text{FD}_{\text{local}}$$
+              <span class="text-[10px] text-slate-400 block mt-1">Guarantees neighbor cannot route back through local node</span>
+            </div>
+
+            <div class="bg-dark-850 p-3.5 rounded-lg border border-dark-700 font-mono text-xs text-slate-300 mb-4">
+              $$\text{Composite Metric} = 256 \times \left(\frac{10^4}{\text{BW}_{\text{Mbps}}} + \frac{\text{Delay}_{\text{ms}}}{10}\right)$$
+            </div>
+          </div>
+
+          <!-- Interactive Calculator -->
+          <div class="bg-dark-850 p-4 rounded-lg border border-dark-700/80 mt-2">
+            <span class="text-xs font-semibold text-slate-300 block mb-2">Interactive Composite Metric Calculator:</span>
+            <div class="grid grid-cols-2 gap-3 text-xs mb-3">
+              <div>
+                <label class="text-slate-400 block text-[11px] mb-1">Bandwidth: <span id="calc-bw-val" class="font-mono text-emerald-400">1000</span> Mbps</label>
+                <input type="range" id="calc-bw" min="10" max="10000" step="10" value="1000" oninput="calcCompositeMetric()" class="w-full accent-emerald-500">
+              </div>
+              <div>
+                <label class="text-slate-400 block text-[11px] mb-1">Delay: <span id="calc-delay-val" class="font-mono text-emerald-400">4</span> ms</label>
+                <input type="range" id="calc-delay" min="1" max="100" step="1" value="4" oninput="calcCompositeMetric()" class="w-full accent-emerald-500">
+              </div>
+            </div>
+            <div class="flex items-center justify-between text-xs bg-dark-900 px-3 py-2 rounded font-mono">
+              <span class="text-slate-400">Calculated Metric:</span>
+              <span id="calc-result" class="text-emerald-400 font-bold text-sm">2,662</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BGP Section -->
+        <div class="bg-dark-900/80 rounded-xl p-5 border border-dark-750 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center space-x-2 text-orange-400 font-bold mb-3">
+              <span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span>
+              <span>2. Path Vector (BGP) Policy Order</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+              BGP acts as the postal routing system of the global Internet. It chooses routes based on administrative policies rather than physical performance:
+            </p>
+
+            <div class="space-y-2 text-xs font-mono mb-4">
+              <div class="p-2.5 rounded-lg bg-dark-850 border border-dark-700 flex items-center justify-between">
+                <span class="text-slate-300">1. Highest LOCAL_PREF</span>
+                <span class="text-orange-400 font-bold">Policy Weight (default 100)</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-dark-850 border border-dark-700 flex items-center justify-between">
+                <span class="text-slate-300">2. Shortest AS_PATH</span>
+                <span class="text-cyan-400 font-bold">Fewer AS traversals</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-dark-850 border border-dark-700 flex items-center justify-between">
+                <span class="text-slate-300">3. Lowest Origin Code</span>
+                <span class="text-slate-400">IGP &lt; EGP &lt; Incomplete</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-dark-850 border border-dark-700 flex items-center justify-between">
+                <span class="text-slate-300">4. Lowest MED / IGP Metric</span>
+                <span class="text-slate-400">Internal tie-breaker</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-dark-850 p-3.5 rounded-lg border border-orange-900/30 text-xs text-slate-300">
+            <span class="font-bold text-orange-400">AS-Path Loop Check:</span> If a router receives an update containing its own Autonomous System number in the <code class="text-orange-300 font-mono">AS_PATH</code> attribute, it silently discards the advertisement to avoid loop formation.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TERMINAL EMULATOR / CLI SANDBOX -->
+    <div class="bg-dark-900 border border-dark-750 rounded-2xl overflow-hidden shadow-2xl" id="terminal">
+      <!-- Window controls -->
+      <div class="px-4 py-3 bg-dark-850 border-b border-dark-750 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span class="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-yellow-500/80 inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-green-500/80 inline-block"></span>
+          <span class="text-xs font-mono text-slate-400 ml-2">powershell - simulator.py</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="runVirtualCLI()" class="text-xs px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold transition">
+            ▶ Run python simulator.py
+          </button>
+          <button onclick="clearCLI()" class="text-xs px-2.5 py-1 rounded bg-dark-750 hover:bg-dark-700 text-slate-400 font-mono transition">
+            Clear
+          </button>
+        </div>
+      </div>
+      <!-- Console Body -->
+      <div class="p-5 font-mono text-xs text-emerald-400 bg-dark-950 min-h-[260px] max-h-[380px] overflow-y-auto leading-relaxed" id="cli-output">
+        <span class="text-slate-500">PS C:\Codes\Routing protocol simulator></span> python simulator.py<br>
+        <span class="text-slate-400">===========================================================================</span><br>
+        <span class="text-yellow-400"> PHASE 1: STEADY-STATE ROUTING (SOURCE: R1 -> DESTINATION: R6)</span><br>
+        <span class="text-slate-400">===========================================================================</span><br>
+        <br>
+        <span class="text-emerald-300 font-bold">[DUAL (EIGRP)]</span><br>
+        &nbsp;&nbsp;Selected Path      : R1 -> R2 -> R3 -> R5 -> R6<br>
+        &nbsp;&nbsp;Protocol Metric    : 10648<br>
+        &nbsp;&nbsp;End-to-End Delay   : 16 ms<br>
+        &nbsp;&nbsp;Bottleneck BW      : 1000 Mbps<br>
+        &nbsp;&nbsp;Computation Time   : 1.0757 ms<br>
+        <br>
+        <span class="text-orange-400 font-bold">[Path Vector (BGP)]</span><br>
+        &nbsp;&nbsp;Selected Path      : R1 -> R2 -> R3 -> R6<br>
+        &nbsp;&nbsp;Protocol Metric    : 3 AS-Hops (LocalPref 150)<br>
+        &nbsp;&nbsp;End-to-End Delay   : 33 ms<br>
+        &nbsp;&nbsp;Bottleneck BW      : 100 Mbps<br>
+        &nbsp;&nbsp;Computation Time   : 1.0261 ms<br>
+        <br>
+        <span class="text-slate-400">===========================================================================</span><br>
+        <span class="text-yellow-400"> PHASE 2: LINK FAILURE SIMULATION (FIBER CUT ON R2 &lt;-&gt; R3)</span><br>
+        <span class="text-slate-400">===========================================================================</span><br>
+        <br>
+        <span class="text-emerald-300 font-bold">[DUAL (EIGRP) - Post-Failure Reconvergence]</span><br>
+        &nbsp;&nbsp;New Selected Path  : R1 -> R2 -> R4 -> R5 -> R6<br>
+        &nbsp;&nbsp;Protocol Metric    : 57215<br>
+        &nbsp;&nbsp;End-to-End Delay   : 35 ms<br>
+        &nbsp;&nbsp;Bottleneck BW      : 100 Mbps<br>
+        <br>
+        <span class="text-orange-400 font-bold">[Path Vector (BGP) - Post-Failure Reconvergence]</span><br>
+        &nbsp;&nbsp;New Selected Path  : R1 -> R2 -> R4 -> R6<br>
+        &nbsp;&nbsp;Protocol Metric    : 3 AS-Hops (LocalPref 150)<br>
+        &nbsp;&nbsp;End-to-End Delay   : 64 ms<br>
+        &nbsp;&nbsp;Bottleneck BW      : 10 Mbps<br>
+        <br>
+        <span class="text-cyan-400">[+] Saved benchmark chart to 'performance_analysis.png'</span><br>
+      </div>
+    </div>
+
+    <!-- QUICKSTART / LOCAL RUN INSTRUCTIONS -->
+    <div class="bg-dark-850 border border-dark-750 rounded-2xl p-6 shadow-xl">
+      <h3 class="text-lg font-bold text-white mb-4 flex items-center space-x-2">
+        <span>How to Run Locally on your Machine</span>
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+        <div class="bg-dark-900 p-4 rounded-xl border border-dark-750">
+          <div class="text-slate-400 mb-2 font-sans font-semibold text-sm">Method 1: Quick Batch Execution</div>
+          <div class="text-slate-500 mb-1"># In project root folder:</div>
+          <div class="text-emerald-400 bg-dark-950 p-2.5 rounded border border-dark-700 select-all">
+            .\run.bat
+          </div>
+          <div class="text-slate-400 mt-2 font-sans">
+            Automatically uses the isolated virtual environment (`venv`) and produces console benchmarks and the PNG graph.
+          </div>
+        </div>
+
+        <div class="bg-dark-900 p-4 rounded-xl border border-dark-750">
+          <div class="text-slate-400 mb-2 font-sans font-semibold text-sm">Method 2: Direct Python Command</div>
+          <div class="text-slate-500 mb-1"># Run via python interpreter:</div>
+          <div class="text-emerald-400 bg-dark-950 p-2.5 rounded border border-dark-700 select-all">
+            python simulator.py
+          </div>
+          <div class="text-slate-400 mt-2 font-sans">
+            Requires `networkx`, `matplotlib`, and `numpy` installed from `requirements.txt`.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-dark-750 bg-dark-900/90 py-8 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        Routing Protocol Simulator &bull; Comparative DUAL vs. BGP Benchmark
+      </div>
+      <div class="flex items-center space-x-4">
+        <a href="https://github.com/NeerajRoy24/routing-protocol-simulator" target="_blank" class="hover:text-emerald-400 transition">GitHub Repository</a>
+        <span>&bull;</span>
+        <button onclick="scrollToTopology()" class="hover:text-emerald-400 transition">Interactive Topology</button>
+      </div>
+    </div>
+  </footer>
+
+
+  <!-- SIMULATION ENGINE & UI SCRIPT -->
+  <script>
+    // -------------------------------------------------------------
+    // 1. NETWORK TOPOLOGY DATA MODEL
+    // -------------------------------------------------------------
+    const ROUTERS = {
+      "R1": { id: "R1", asn: 65001, x: 120, y: 240, role: "Edge Ingress" },
+      "R2": { id: "R2", asn: 65002, x: 340, y: 130, role: "Core Transit" },
+      "R3": { id: "R3", asn: 65003, x: 580, y: 130, role: "Core Transit" },
+      "R4": { id: "R4", asn: 65004, x: 340, y: 350, role: "Metro Ring" },
+      "R5": { id: "R5", asn: 65005, x: 580, y: 350, role: "Core Aggregation" },
+      "R6": { id: "R6", asn: 65006, x: 790, y: 240, role: "DC Egress" }
+    };
+
+    // Raw link definition matching simulator.py
+    let LINKS = [
+      { id: "R1-R2", u: "R1", v: "R2", bw: 1000, delay: 4, local_pref: 150, type: "fiber", status: "UP" },
+      { id: "R2-R3", u: "R2", v: "R3", bw: 1000, delay: 4, local_pref: 150, type: "fiber", status: "UP" },
+      { id: "R3-R5", u: "R3", v: "R5", bw: 1000, delay: 4, local_pref: 150, type: "fiber", status: "UP" },
+      { id: "R5-R6", u: "R5", v: "R6", bw: 1000, delay: 4, local_pref: 150, type: "fiber", status: "UP" },
+      { id: "R2-R4", u: "R2", v: "R4", bw: 100, delay: 15, local_pref: 120, type: "backup", status: "UP" },
+      { id: "R4-R5", u: "R4", v: "R5", bw: 100, delay: 12, local_pref: 120, type: "backup", status: "UP" },
+      { id: "R3-R6", u: "R3", v: "R6", bw: 100, delay: 25, local_pref: 120, type: "backup", status: "UP" },
+      { id: "R1-R4", u: "R1", v: "R4", bw: 10, delay: 45, local_pref: 100, type: "legacy", status: "UP" },
+      { id: "R4-R6", u: "R4", v: "R6", bw: 10, delay: 45, local_pref: 100, type: "legacy", status: "UP" }
+    ];
+
+    let viewFilter = "both"; // "both", "dual", "bgp"
+    let currentDualResult = null;
+    let currentBgpResult = null;
+    let convergenceChart = null;
+    let latencyChart = null;
+
+    // -------------------------------------------------------------
+    // 2. DUAL METRIC FORMULA
+    // Metric = 256 * ((10^4 / BW_mbps) + (Delay_ms / 10))
+    // -------------------------------------------------------------
+    function calcDualMetric(bw, delay) {
+      return Math.floor(256 * ((10000 / bw) + (delay / 10)));
+    }
+
+    // -------------------------------------------------------------
+    // 3. GRAPH ALGORITHMS (DIJKSTRA FOR DUAL & PATH VECTOR FOR BGP)
+    // -------------------------------------------------------------
+    function getActiveAdjacency() {
+      const adj = {};
+      for (const r in ROUTERS) adj[r] = [];
+
+      for (const link of LINKS) {
+        if (link.status === "UP") {
+          const metric = calcDualMetric(link.bw, link.delay);
+          adj[link.u].push({ neighbor: link.v, link, metric });
+          adj[link.v].push({ neighbor: link.u, link, metric });
+        }
+      }
+      return adj;
+    }
+
+    // Dijkstra algorithm for shortest path by custom weight
+    function dijkstra(adj, src, dst, weightKey = 'metric') {
+      const dist = {};
+      const prev = {};
+      const visited = new Set();
+      const nodes = Object.keys(ROUTERS);
+
+      nodes.forEach(n => dist[n] = Infinity);
+      dist[src] = 0;
+
+      while (visited.size < nodes.length) {
+        let u = null;
+        let minD = Infinity;
+        for (const n of nodes) {
+          if (!visited.has(n) && dist[n] < minD) {
+            minD = dist[n];
+            u = n;
+          }
+        }
+        if (u === null || dist[u] === Infinity || u === dst) break;
+        visited.add(u);
+
+        for (const edge of adj[u]) {
+          const v = edge.neighbor;
+          if (visited.has(v)) continue;
+          const alt = dist[u] + edge[weightKey];
+          if (alt < dist[v]) {
+            dist[v] = alt;
+            prev[v] = u;
+          }
+        }
+      }
+
+      if (dist[dst] === Infinity) return null;
+
+      // Reconstruct path
+      const path = [];
+      let curr = dst;
+      while (curr) {
+        path.unshift(curr);
+        curr = prev[curr];
+      }
+      return { path, distance: dist[dst] };
+    }
+
+    // Run DUAL Algorithm matching simulator.py
+    function runDual(src, dst) {
+      const t0 = performance.now();
+      const adj = getActiveAdjacency();
+      const primary = dijkstra(adj, src, dst, 'metric');
+
+      if (!primary) {
+        return {
+          protocol: "DUAL (EIGRP)",
+          reachable: false,
+          path: [],
+          metric: "Unreachable",
+          delay: 0,
+          bottleneck: 0,
+          feasibleSuccessors: [],
+          computeTime: (performance.now() - t0).toFixed(4)
+        };
+      }
+
+      const fd = primary.distance;
+      const primaryNextHop = primary.path[1];
+
+      // Feasible Successor check for all other neighbors of src
+      const feasibleSuccessors = [];
+      for (const edge of adj[src]) {
+        const neighbor = edge.neighbor;
+        if (neighbor === primaryNextHop) continue;
+
+        const neighborRoute = dijkstra(adj, neighbor, dst, 'metric');
+        if (neighborRoute) {
+          const rd = neighborRoute.distance;
+          // Feasibility condition: RD < FD
+          if (rd < fd) {
+            feasibleSuccessors.push({
+              nextHop: neighbor,
+              path: [src, ...neighborRoute.path],
+              reportedDistance: rd,
+              totalDistance: edge.metric + rd
+            });
+          }
+        }
+      }
+
+      // Calculate path delay and bottleneck bandwidth
+      let totalDelay = 0;
+      let minBw = Infinity;
+      for (let i = 0; i < primary.path.length - 1; i++) {
+        const u = primary.path[i];
+        const v = primary.path[i + 1];
+        const link = LINKS.find(l => (l.u === u && l.v === v) || (l.u === v && l.v === u));
+        totalDelay += link.delay;
+        minBw = Math.min(minBw, link.bw);
+      }
+
+      return {
+        protocol: "DUAL (EIGRP)",
+        reachable: true,
+        path: primary.path,
+        metric: fd,
+        delay: totalDelay,
+        bottleneck: minBw,
+        feasibleSuccessors,
+        computeTime: (performance.now() - t0).toFixed(4)
+      };
+    }
+
+    // All simple paths search for BGP
+    function findAllSimplePaths(adj, current, dst, visited = []) {
+      if (current === dst) return [[dst]];
+      visited.push(current);
+      const paths = [];
+
+      for (const edge of adj[current]) {
+        const nxt = edge.neighbor;
+        if (!visited.includes(nxt)) {
+          const subPaths = findAllSimplePaths(adj, nxt, dst, [...visited]);
+          for (const sp of subPaths) {
+            paths.push([current, ...sp]);
+          }
+        }
+      }
+      return paths;
+    }
+
+    // Run Path Vector BGP matching simulator.py
+    function runBGP(src, dst) {
+      const t0 = performance.now();
+      const adj = getActiveAdjacency();
+      const allPaths = findAllSimplePaths(adj, src, dst);
+
+      if (allPaths.length === 0) {
+        return {
+          protocol: "Path Vector (BGP)",
+          reachable: false,
+          path: [],
+          asPath: [],
+          metric: "Unreachable",
+          delay: 0,
+          bottleneck: 0,
+          candidates: [],
+          computeTime: (performance.now() - t0).toFixed(4)
+        };
+      }
+
+      const candidates = [];
+      for (const path of allPaths) {
+        const asPath = path.map(node => ROUTERS[node].asn);
+        // AS-Path loop detection: unique ASNs
+        if (new Set(asPath).size !== asPath.length) continue;
+
+        // First hop local_pref
+        const firstHopLink = LINKS.find(l => 
+          (l.u === path[0] && l.v === path[1]) || (l.u === path[1] && l.v === path[0])
+        );
+        const localPref = firstHopLink ? firstHopLink.local_pref : 100;
+        const asHops = asPath.length - 1;
+
+        let totalDelay = 0;
+        let minBw = Infinity;
+        for (let i = 0; i < path.length - 1; i++) {
+          const u = path[i];
+          const v = path[i + 1];
+          const link = LINKS.find(l => (l.u === u && l.v === v) || (l.u === v && l.v === u));
+          totalDelay += link.delay;
+          minBw = Math.min(minBw, link.bw);
+        }
+
+        candidates.push({
+          path,
+          asPath,
+          localPref,
+          asHops,
+          delay: totalDelay,
+          bottleneck: minBw
+        });
+      }
+
+      // Best-path selection:
+      // 1. Highest Local_Pref
+      // 2. Shortest AS_PATH
+      // 3. Lowest delay
+      candidates.sort((a, b) => {
+        if (b.localPref !== a.localPref) return b.localPref - a.localPref;
+        if (a.asHops !== b.asHops) return a.asHops - b.asHops;
+        return a.delay - b.delay;
+      });
+
+      const best = candidates[0];
+
+      return {
+        protocol: "Path Vector (BGP)",
+        reachable: true,
+        path: best.path,
+        asPath: best.asPath,
+        localPref: best.localPref,
+        asHops: best.asHops,
+        metric: `${best.asHops} AS-Hops (LocalPref ${best.localPref})`,
+        delay: best.delay,
+        bottleneck: best.bottleneck,
+        candidates,
+        computeTime: (performance.now() - t0).toFixed(4)
+      };
+    }
+
+
+    // -------------------------------------------------------------
+    // 4. SVG TOPOLOGY RENDERING & INTERACTION
+    // -------------------------------------------------------------
+    function renderTopologySVG() {
+      const linksG = document.getElementById("svg-links");
+      const nodesG = document.getElementById("svg-nodes");
+      linksG.innerHTML = "";
+      nodesG.innerHTML = "";
+
+      const dualPath = currentDualResult && currentDualResult.reachable ? currentDualResult.path : [];
+      const bgpPath = currentBgpResult && currentBgpResult.reachable ? currentBgpResult.path : [];
+
+      // Render Links
+      LINKS.forEach(link => {
+        const u = ROUTERS[link.u];
+        const v = ROUTERS[link.v];
+        const isDown = link.status === "DOWN";
+
+        // Determine if link is on active path
+        const isDual = isLinkInPath(link, dualPath) && (viewFilter === "both" || viewFilter === "dual");
+        const isBgp = isLinkInPath(link, bgpPath) && (viewFilter === "both" || viewFilter === "bgp");
+
+        let strokeColor = "#334155"; // default slate
+        let strokeWidth = 3;
+        let strokeDash = "none";
+        let filterAttr = "";
+
+        if (link.type === "fiber") {
+          strokeColor = "#1e293b";
+          strokeWidth = 4;
+        } else if (link.type === "backup") {
+          strokeColor = "#1e293b";
+          strokeWidth = 3;
+        } else {
+          strokeColor = "#0f172a";
+          strokeWidth = 2.5;
+        }
+
+        if (isDown) {
+          strokeColor = "#ef4444";
+          strokeDash = "6 6";
+          strokeWidth = 3;
+        } else if (isDual && isBgp) {
+          strokeColor = "#10b981"; // Dual green with dual tone
+          strokeWidth = 6;
+          filterAttr = 'filter="url(#glow-green)"';
+        } else if (isDual) {
+          strokeColor = "#10b981";
+          strokeWidth = 5;
+          filterAttr = 'filter="url(#glow-green)"';
+        } else if (isBgp) {
+          strokeColor = "#f97316";
+          strokeWidth = 5;
+          filterAttr = 'filter="url(#glow-orange)"';
+        }
+
+        // Midpoint for badge
+        const midX = (u.x + v.x) / 2;
+        const midY = (u.y + v.y) / 2;
+
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("class", "cursor-pointer group");
+        g.onclick = () => toggleLinkStatus(link.id);
+
+        g.innerHTML = `
+          <!-- Invisible wide hit area -->
+          <line x1="${u.x}" y1="${u.y}" x2="${v.x}" y2="${v.y}" stroke="transparent" stroke-width="24" />
+          <!-- Visible Link Line -->
+          <line x1="${u.x}" y1="${u.y}" x2="${v.x}" y2="${v.y}" 
+                stroke="${strokeColor}" stroke-width="${strokeWidth}" 
+                stroke-dasharray="${strokeDash}" ${filterAttr}
+                class="transition-all duration-300 group-hover:stroke-cyan-400" />
+          
+          <!-- Midpoint Info Badge -->
+          <g transform="translate(${midX}, ${midY})">
+            <rect x="-38" y="-10" width="76" height="20" rx="10" 
+                  fill="${isDown ? '#450a0a' : '#0f172a'}" 
+                  stroke="${isDown ? '#ef4444' : (isDual ? '#10b981' : (isBgp ? '#f97316' : '#334155'))}" 
+                  stroke-width="1.5" class="transition-all group-hover:scale-110" />
+            <text x="0" y="3.5" font-family="'Fira Code', monospace" font-size="9" 
+                  fill="${isDown ? '#fca5a5' : '#cbd5e1'}" text-anchor="middle" font-weight="600">
+              ${isDown ? 'CUT ✕' : `${link.bw}M / ${link.delay}ms`}
+            </text>
+          </g>
+        `;
+        linksG.appendChild(g);
+      });
+
+      // Render Routers
+      const src = document.getElementById("src-router").value;
+      const dst = document.getElementById("dst-router").value;
+
+      for (const id in ROUTERS) {
+        const r = ROUTERS[id];
+        const isSrc = id === src;
+        const isDst = id === dst;
+        const isDualHop = dualPath.includes(id);
+        const isBgpHop = bgpPath.includes(id);
+
+        let borderGlow = "#334155";
+        let fillGrad = "url(#node-grad)";
+
+        if (isSrc) {
+          borderGlow = "#10b981";
+        } else if (isDst) {
+          borderGlow = "#06b6d4";
+        } else if (isDualHop || isBgpHop) {
+          borderGlow = isDualHop ? "#10b981" : "#f97316";
+        }
+
+        const nodeG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        nodeG.setAttribute("transform", `translate(${r.x}, ${r.y})`);
+        nodeG.setAttribute("class", "transition-transform duration-300 hover:scale-105 select-none");
+
+        nodeG.innerHTML = `
+          <!-- Pulsing Ring for Source / Target -->
+          ${(isSrc || isDst) ? `
+            <circle r="34" fill="none" stroke="${isSrc ? '#10b981' : '#06b6d4'}" stroke-width="2" opacity="0.4" class="animate-ping" />
+          ` : ''}
+
+          <!-- Router Outer Circle -->
+          <circle r="26" fill="${fillGrad}" stroke="${borderGlow}" stroke-width="${(isSrc || isDst) ? 3 : 2}" 
+                  filter="drop-shadow(0 4px 6px rgba(0,0,0,0.6))" />
+
+          <!-- Router Label -->
+          <text x="0" y="-3" font-family="'Plus Jakarta Sans', sans-serif" font-size="14" font-weight="800" 
+                fill="#ffffff" text-anchor="middle">${r.id}</text>
+          
+          <!-- ASN Badge -->
+          <text x="0" y="12" font-family="'Fira Code', monospace" font-size="9" font-weight="600" 
+                fill="${isSrc ? '#34d399' : (isDst ? '#22d3ee' : '#94a3b8')}" text-anchor="middle">
+            AS${r.asn - 65000}
+          </text>
+
+          <!-- Router Role Tag Underneath -->
+          <text x="0" y="42" font-family="'Plus Jakarta Sans', sans-serif" font-size="10" font-weight="500" 
+                fill="#64748b" text-anchor="middle">
+            ${isSrc ? '▲ SOURCE' : (isDst ? '★ TARGET' : r.role)}
+          </text>
+        `;
+        nodesG.appendChild(nodeG);
+      }
+    }
+
+    function isLinkInPath(link, path) {
+      if (!path || path.length < 2) return false;
+      for (let i = 0; i < path.length - 1; i++) {
+        if ((path[i] === link.u && path[i + 1] === link.v) ||
+            (path[i] === link.v && path[i + 1] === link.u)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // -------------------------------------------------------------
+    // 5. SIMULATION CONTROLLER & UI UPDATE
+    // -------------------------------------------------------------
+    function updateSimulation() {
+      const src = document.getElementById("src-router").value;
+      const dst = document.getElementById("dst-router").value;
+
+      currentDualResult = runDual(src, dst);
+      currentBgpResult = runBGP(src, dst);
+
+      renderTopologySVG();
+      updateDecisionCards();
+      renderQuickToggleButtons();
+      updateCharts();
+    }
+
+    function updateDecisionCards() {
+      // DUAL Card Updates
+      const dualMetricEl = document.getElementById("dual-metric");
+      const dualDelayEl = document.getElementById("dual-delay");
+      const dualBwEl = document.getElementById("dual-bw");
+      const dualPathEl = document.getElementById("dual-path-display");
+      const dualFsDetails = document.getElementById("dual-fs-details");
+      const fsBadge = document.getElementById("fs-condition-badge");
+
+      if (currentDualResult.reachable) {
+        dualMetricEl.innerText = Number(currentDualResult.metric).toLocaleString();
+        dualDelayEl.innerText = `${currentDualResult.delay} ms`;
+        dualBwEl.innerText = `${currentDualResult.bottleneck} Mbps`;
+
+        dualPathEl.innerHTML = currentDualResult.path.map((node, idx) => `
+          <span class="px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-bold">${node}</span>
+          ${idx < currentDualResult.path.length - 1 ? '<span class="text-emerald-600">➔</span>' : ''}
+        `).join('');
+
+        if (currentDualResult.feasibleSuccessors.length > 0) {
+          fsBadge.className = "font-mono text-[11px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold";
+          fsBadge.innerText = "✓ Feasible Successor Active";
+          const fs = currentDualResult.feasibleSuccessors[0];
+          dualFsDetails.innerHTML = `
+            <div>Next Hop: <strong class="text-emerald-300">${fs.nextHop}</strong> &bull; Backup: ${fs.path.join(' ➔ ')}</div>
+            <div class="text-[11px] text-slate-400">RD (${fs.reportedDistance}) &lt; FD (${currentDualResult.metric}) &bull; Total Distance: ${fs.totalDistance}</div>
+          `;
+        } else {
+          fsBadge.className = "font-mono text-[11px] px-2 py-0.5 rounded bg-dark-750 text-slate-400";
+          fsBadge.innerText = "No Feasible Successor";
+          dualFsDetails.innerHTML = `
+            <div class="text-slate-500">No backup path satisfies the Feasibility Condition (RD &lt; FD). Link cuts require Active Diffusing Queries.</div>
+          `;
+        }
+      } else {
+        dualMetricEl.innerText = "Unreachable";
+        dualDelayEl.innerText = "∞";
+        dualBwEl.innerText = "0 Mbps";
+        dualPathEl.innerHTML = '<span class="text-red-400">No active path available</span>';
+        dualFsDetails.innerHTML = '<span class="text-red-400">Destination partitioned from source.</span>';
+      }
+
+      // BGP Card Updates
+      const bgpMetricEl = document.getElementById("bgp-metric");
+      const bgpDelayEl = document.getElementById("bgp-delay");
+      const bgpBwEl = document.getElementById("bgp-bw");
+      const bgpPathEl = document.getElementById("bgp-path-display");
+      const bgpAsTrace = document.getElementById("bgp-as-trace");
+      const bgpCandidates = document.getElementById("bgp-candidates-list");
+
+      if (currentBgpResult.reachable) {
+        bgpMetricEl.innerText = `${currentBgpResult.asHops} AS Hops`;
+        bgpDelayEl.innerText = `${currentBgpResult.delay} ms`;
+        bgpBwEl.innerText = `${currentBgpResult.bottleneck} Mbps`;
+
+        bgpPathEl.innerHTML = currentBgpResult.path.map((node, idx) => `
+          <span class="px-2 py-0.5 rounded bg-orange-950/80 border border-orange-800 text-orange-300 font-bold">${node}</span>
+          ${idx < currentBgpResult.path.length - 1 ? '<span class="text-orange-600">➔</span>' : ''}
+        `).join('');
+
+        bgpAsTrace.innerText = `[${currentBgpResult.asPath.join(', ')}]`;
+
+        const topCandidates = currentBgpResult.candidates.slice(0, 3);
+        bgpCandidates.innerHTML = topCandidates.map((c, i) => `
+          <div class="flex items-center justify-between py-0.5 ${i === 0 ? 'text-orange-300 font-semibold' : 'text-slate-500'}">
+            <span>${i === 0 ? '★ ' : '&nbsp;&nbsp;'}${c.path.join('➔')}</span>
+            <span>Pref:${c.localPref} | ${c.asHops} Hops</span>
+          </div>
+        `).join('');
+      } else {
+        bgpMetricEl.innerText = "Unreachable";
+        bgpDelayEl.innerText = "∞";
+        bgpBwEl.innerText = "0 Mbps";
+        bgpPathEl.innerHTML = '<span class="text-red-400">No active path available</span>';
+        bgpAsTrace.innerText = "[]";
+        bgpCandidates.innerHTML = '<span class="text-red-400">All candidate AS paths disconnected.</span>';
+      }
+    }
+
+    function renderQuickToggleButtons() {
+      const container = document.getElementById("links-quick-toggle");
+      container.innerHTML = "";
+
+      LINKS.forEach(link => {
+        const isDown = link.status === "DOWN";
+        const btn = document.createElement("button");
+        btn.onclick = () => toggleLinkStatus(link.id);
+        btn.className = `px-2.5 py-1.5 rounded-lg border text-xs font-mono font-medium flex items-center justify-between transition ${
+          isDown 
+            ? 'bg-red-950/50 border-red-800 text-red-300 hover:bg-red-900/60' 
+            : 'bg-dark-900 border-dark-700 text-slate-300 hover:bg-dark-750'
+        }`;
+        btn.innerHTML = `
+          <span>${link.u}-${link.v}</span>
+          <span class="w-2 h-2 rounded-full ${isDown ? 'bg-red-500 animate-pulse' : 'bg-emerald-400'}"></span>
+        `;
+        container.appendChild(btn);
+      });
+    }
+
+    function toggleLinkStatus(linkId) {
+      const link = LINKS.find(l => l.id === linkId);
+      if (!link) return;
+      link.status = (link.status === "UP") ? "DOWN" : "UP";
+      
+      const ticker = document.getElementById("ticker-text");
+      ticker.innerText = `Link ${link.u} <-> ${link.v} set to ${link.status}. Recomputing routes...`;
+      
+      updateSimulation();
+    }
+
+    function setViewFilter(filter) {
+      viewFilter = filter;
+      document.getElementById("btn-view-both").className = filter === 'both' ? 'px-3 py-1 rounded-md bg-dark-700 text-white font-semibold transition' : 'px-3 py-1 rounded-md text-slate-400 hover:text-white transition';
+      document.getElementById("btn-view-dual").className = filter === 'dual' ? 'px-3 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-800 font-semibold transition' : 'px-3 py-1 rounded-md text-slate-400 hover:text-emerald-400 transition';
+      document.getElementById("btn-view-bgp").className = filter === 'bgp' ? 'px-3 py-1 rounded-md bg-orange-950 text-orange-300 border border-orange-800 font-semibold transition' : 'px-3 py-1 rounded-md text-slate-400 hover:text-orange-400 transition';
+      renderTopologySVG();
+    }
+
+    // -------------------------------------------------------------
+    // 6. SCENARIO PRESETS
+    // -------------------------------------------------------------
+    function triggerScenario(name) {
+      if (name === "steady") {
+        LINKS.forEach(l => l.status = "UP");
+        document.getElementById("src-router").value = "R1";
+        document.getElementById("dst-router").value = "R6";
+        document.getElementById("ticker-text").innerText = "Steady-state scenario restored. All 9 links operational.";
+      } else if (name === "cut-core") {
+        LINKS.forEach(l => l.status = "UP");
+        const core = LINKS.find(l => l.id === "R2-R3");
+        if (core) core.status = "DOWN";
+        document.getElementById("ticker-text").innerText = "Core Fiber Cut simulated on R2 <-> R3. DUAL and BGP reconverged!";
+      } else if (name === "cut-backup") {
+        const link = LINKS.find(l => l.id === "R4-R5");
+        if (link) link.status = link.status === "UP" ? "DOWN" : "UP";
+        document.getElementById("ticker-text").innerText = "Backup link R4 <-> R5 toggled.";
+      }
+      updateSimulation();
+    }
+
+    function resetTopology() {
+      LINKS.forEach(l => l.status = "UP");
+      document.getElementById("ticker-text").innerText = "Topology reset. All links UP.";
+      updateSimulation();
+    }
+
+    // -------------------------------------------------------------
+    // 7. ANIMATED PACKET PING
+    // -------------------------------------------------------------
+    function triggerPacketPing() {
+      const packetLayer = document.getElementById("svg-packet-layer");
+      packetLayer.innerHTML = "";
+
+      const activePath = (viewFilter === "bgp" ? currentBgpResult.path : currentDualResult.path);
+      if (!activePath || activePath.length < 2) {
+        document.getElementById("ticker-text").innerText = "Cannot ping: No active path available!";
+        return;
+      }
+
+      document.getElementById("ticker-text").innerText = `Transmitting ping along ${viewFilter === 'bgp' ? 'BGP' : 'DUAL'} route: ${activePath.join(' ➔ ')}`;
+
+      // Create glowing packet circle
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("r", "7");
+      circle.setAttribute("fill", viewFilter === "bgp" ? "#f97316" : "#34d399");
+      circle.setAttribute("filter", viewFilter === "bgp" ? "url(#glow-orange)" : "url(#glow-green)");
+      packetLayer.appendChild(circle);
+
+      let hopIndex = 0;
+      function animateHop() {
+        if (hopIndex >= activePath.length - 1) {
+          setTimeout(() => {
+            packetLayer.innerHTML = "";
+            document.getElementById("ticker-text").innerText = `Ping reached ${activePath[activePath.length - 1]} successfully!`;
+          }, 300);
+          return;
+        }
+
+        const startNode = ROUTERS[activePath[hopIndex]];
+        const endNode = ROUTERS[activePath[hopIndex + 1]];
+        const startTime = performance.now();
+        const duration = 400; // ms per hop
+
+        function step(now) {
+          const progress = Math.min((now - startTime) / duration, 1);
+          const currentX = startNode.x + (endNode.x - startNode.x) * progress;
+          const currentY = startNode.y + (endNode.y - startNode.y) * progress;
+          circle.setAttribute("cx", currentX);
+          circle.setAttribute("cy", currentY);
+
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          } else {
+            hopIndex++;
+            animateHop();
+          }
+        }
+        requestAnimationFrame(step);
+      }
+
+      animateHop();
+    }
+
+    // -------------------------------------------------------------
+    // 8. INTERACTIVE COMPOSITE METRIC CALCULATOR
+    // -------------------------------------------------------------
+    function calcCompositeMetric() {
+      const bw = parseFloat(document.getElementById("calc-bw").value);
+      const delay = parseFloat(document.getElementById("calc-delay").value);
+      document.getElementById("calc-bw-val").innerText = bw;
+      document.getElementById("calc-delay-val").innerText = delay;
+
+      const metric = Math.floor(256 * ((10000 / bw) + (delay / 10)));
+      document.getElementById("calc-result").innerText = metric.toLocaleString();
+    }
+
+    // -------------------------------------------------------------
+    // 9. VIRTUAL TERMINAL CLI SANDBOX
+    // -------------------------------------------------------------
+    function runVirtualCLI() {
+      const out = document.getElementById("cli-output");
+      out.innerHTML += `<br><span class="text-slate-500">PS C:\\Codes\\Routing protocol simulator></span> python simulator.py --src ${document.getElementById("src-router").value} --dst ${document.getElementById("dst-router").value}<br>`;
+      out.innerHTML += `<span class="text-emerald-400">Computing fresh routing matrices at ${new Date().toLocaleTimeString()}...</span><br>`;
+      
+      const dual = runDual(document.getElementById("src-router").value, document.getElementById("dst-router").value);
+      const bgp = runBGP(document.getElementById("src-router").value, document.getElementById("dst-router").value);
+
+      out.innerHTML += `[DUAL] Path: ${dual.path.join(' -> ')} | Metric: ${dual.metric} | Delay: ${dual.delay}ms<br>`;
+      out.innerHTML += `[BGP]  Path: ${bgp.path.join(' -> ')} | AS_PATH: [${bgp.asPath.join(', ')}] | Delay: ${bgp.delay}ms<br>`;
+      out.scrollTop = out.scrollHeight;
+    }
+
+    function clearCLI() {
+      document.getElementById("cli-output").innerHTML = '<span class="text-slate-500">PS C:\\Codes\\Routing protocol simulator></span> <span class="text-slate-400">Terminal ready. Click "Run python simulator.py" above.</span><br>';
+    }
+
+    function scrollToTopology() {
+      document.getElementById("topology").scrollIntoView({ behavior: "smooth" });
+    }
+
+    // -------------------------------------------------------------
+    // 10. CHART.JS PERFORMANCE BENCHMARKING
+    // -------------------------------------------------------------
+    function initCharts() {
+      // 1. Convergence Scalability Chart (Logarithmic)
+      const ctx1 = document.getElementById("chart-convergence").getContext("2d");
+      const routersScale = [6, 14, 22, 30, 38, 46, 54, 62, 70, 78, 86, 94, 102];
+      const dualFsData = routersScale.map(n => 5 + 0.4 * n);
+      const dualQueryData = routersScale.map(n => 45 + 3.5 * n);
+      const bgpData = routersScale.map(n => 1200 + 85 * n);
+
+      convergenceChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+          labels: routersScale,
+          datasets: [
+            {
+              label: 'DUAL (Feasible Successor)',
+              data: dualFsData,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              borderWidth: 2.5,
+              tension: 0.3,
+              pointRadius: 4
+            },
+            {
+              label: 'DUAL (Active Diffusing Query)',
+              data: dualQueryData,
+              borderColor: '#818cf8',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              pointRadius: 3
+            },
+            {
+              label: 'BGP (MRAI Damping + Path Hunting)',
+              data: bgpData,
+              borderColor: '#f97316',
+              backgroundColor: 'rgba(249, 115, 22, 0.1)',
+              borderWidth: 2.5,
+              tension: 0.3,
+              pointRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              type: 'logarithmic',
+              title: { display: true, text: 'Convergence Time (ms)', color: '#94a3b8' },
+              grid: { color: 'rgba(255,255,255,0.06)' },
+              ticks: { color: '#94a3b8' }
+            },
+            x: {
+              title: { display: true, text: 'Router Node Count (N)', color: '#94a3b8' },
+              grid: { color: 'rgba(255,255,255,0.06)' },
+              ticks: { color: '#94a3b8' }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: '#cbd5e1', font: { size: 11 } }
+            }
+          }
+        }
+      });
+
+      // 2. Latency Comparison Chart (Bar)
+      const ctx2 = document.getElementById("chart-latency").getContext("2d");
+      latencyChart = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+          labels: ['Steady State (All UP)', 'Post-Failure (R2-R3 Cut)'],
+          datasets: [
+            {
+              label: 'DUAL (EIGRP)',
+              data: [16, 35],
+              backgroundColor: '#10b981',
+              borderRadius: 6
+            },
+            {
+              label: 'Path Vector (BGP)',
+              data: [33, 64],
+              backgroundColor: '#f97316',
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'End-to-End Delay (ms)', color: '#94a3b8' },
+              grid: { color: 'rgba(255,255,255,0.06)' },
+              ticks: { color: '#94a3b8' }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: '#94a3b8' }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: '#cbd5e1', font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    function updateCharts() {
+      if (!latencyChart) return;
+      // Update dynamic live bar based on current state
+      const currentDualDelay = currentDualResult && currentDualResult.reachable ? currentDualResult.delay : 0;
+      const currentBgpDelay = currentBgpResult && currentBgpResult.reachable ? currentBgpResult.delay : 0;
+
+      const isCoreDown = LINKS.find(l => l.id === "R2-R3" && l.status === "DOWN");
+      if (isCoreDown) {
+        latencyChart.data.datasets[0].data[1] = currentDualDelay;
+        latencyChart.data.datasets[1].data[1] = currentBgpDelay;
+      } else {
+        latencyChart.data.datasets[0].data[0] = currentDualDelay;
+        latencyChart.data.datasets[1].data[0] = currentBgpDelay;
+      }
+      latencyChart.update();
+    }
+
+    function refreshCharts() {
+      if (convergenceChart) convergenceChart.update();
+      if (latencyChart) latencyChart.update();
+    }
+
+    // -------------------------------------------------------------
+    // 11. INITIALIZATION ON DOM READY
+    // -------------------------------------------------------------
+    window.addEventListener("DOMContentLoaded", () => {
+      initCharts();
+      updateSimulation();
+      calcCompositeMetric();
+    });
+  </script>
+</body>
+</html>
